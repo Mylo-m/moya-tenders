@@ -38,11 +38,23 @@ def run_cron() -> dict:
 
     pushed = gcs_sync.push_db()  # no-op if unset / offline
 
+    # Autonomous action: after scraping, the operator shreds fresh tenders and
+    # auto-drafts bid packages with Gemini + doc_engine — no human in the loop.
+    operator_summary = None
+    operator_error = None
+    try:
+        from moya_data import operator as op
+        operator_summary = op.run_operator()
+    except Exception as e:  # operator failure must never block the scrape/push
+        operator_error = str(e)
+
     return {
         "ok": scrape_error is None,
         "gcs_pulled": pulled,
         "gcs_pushed": pushed,
         "scrape_error": scrape_error,
+        "operator_summary": operator_summary,
+        "operator_error": operator_error,
         "seconds": round(time.time() - t0, 1),
         "time": datetime.now(timezone.utc).isoformat(),
     }

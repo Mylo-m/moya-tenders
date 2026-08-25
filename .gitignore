@@ -26,6 +26,11 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
+# Agent-generated artifacts (produced at runtime, not source)
+generated_bid_packages/
+operator_audit.jsonl
+
+
 # Vendor / local
 node_modules/
 venv/
