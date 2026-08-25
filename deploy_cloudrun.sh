@@ -1,45 +1,71 @@
 #!/usr/bin/env bash
-# Deploy MY-LO Moya to Google Cloud Run (the hackathon "proof of deployment").
+# Deploy MY-LO Moya to Google Cloud Run (hackathon "proof of deployment") +
+# wire Cloud Storage (real GCP data store) + Gemini via Secret Manager.
 #
-# PREREQUISITES (one-time, on your machine):
-#   1. gcloud installed:  https://cloud.google.com/sdk/docs/install
-#   2. Authenticate:      gcloud auth login
-#   3. Set project:       gcloud config set project <YOUR_GCP_PROJECT_ID>
-#   4. Enable APIs:       gcloud services enable run.googleapis.com cloudbuild.googleapis.com
-#   5. (Optional) Gemini key in Secret Manager:
-#        gcloud secrets create gemini-api-key --data-file=<(printf '%s' "$GEMINI_API_KEY")
+# PREREQUISITES (your one-time, one-command browser step):
+#   gcloud auth login        # opens browser, approve, pick project
+#   gcloud config set project content-studio-505121
 #
 # Then run:  bash deploy_cloudrun.sh
 set -euo pipefail
 
 SERVICE="moya-tender-desk"
-REGION="${REGION:-europe-west1}"      # closest to ZA latency; change if needed
+REGION="${REGION:-europe-west1}"
 PROJECT="$(gcloud config get-value project)"
+BUCKET="${GCS_BUCKET:-moya-tenders-data}"
 
-echo ">> Deploying $SERVICE to Cloud Run in $PROJECT / $REGION"
+echo ">> Project: $PROJECT   Region: $REGION"
 
-if gcloud secrets describe gemini-api-key >/dev/null 2>&1; then
-  GEMINI_ARG="--set-secrets=GEMINI_API_KEY=gemini-api-key:latest"
-else
-  echo "   (no gemini-api-key secret found — deploying without Gemini; /api/shred will return 503 until you add it)"
-  GEMINI_ARG=""
+echo ">> Enabling APIs..."
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
+  secretmanager.googleapis.com storage.googleapis.com
+
+echo ">> Creating GCS bucket gs://$BUCKET (real cloud data store)..."
+gcloud storage buckets create "gs://$BUCKET" --location="$REGION" \
+  --uniform-bucket-level-access 2>/dev/null || echo "   (bucket exists — skipping)"
+
+echo ">> Loading GEMINI_API_KEY from .env ..."
+KEY="$(grep -E '^GEMINI_API_KEY=' .env | head -1 | cut -d= -f2-)"
+if [ -z "$KEY" ]; then echo "ERR: no GEMINI_API_KEY in .env"; exit 1; fi
+
+if ! gcloud secrets describe gemini-api-key >/dev/null 2>&1; then
+  echo ">> Creating Secret Manager entry (key stays out of image)..."
+  printf '%s' "$KEY" | gcloud secrets create gemini-api-key --data-file=-
 fi
 
+echo ">> Generating CRON_SECRET + deploying (timeout 600s for the scraper job)..."
+CRON_SECRET="$(openssl rand -hex 16)"
 gcloud run deploy "$SERVICE" \
   --source . \
   --region "$REGION" \
   --platform managed \
   --allow-unauthenticated \
   --port 8080 \
-  --timeout 120 \
+  --timeout 600 \
   --cpu 1 \
   --memory 512Mi \
-  $GEMINI_ARG
+  --set-secrets=GEMINI_API_KEY=gemini-api-key:latest \
+  --set-env-vars=GCS_BUCKET="$BUCKET",CRON_SECRET="$CRON_SECRET"
 
 URL="$(gcloud run services describe "$SERVICE" --region "$REGION" --format 'value(status.url)')"
+
+echo ">> Creating Cloud Scheduler job (every 6h, Africa/Johannesburg)..."
+gcloud scheduler jobs delete moya-scrape --location="$REGION" --quiet 2>/dev/null || true
+gcloud scheduler jobs create http moya-scrape \
+  --location="$REGION" \
+  --schedule="0 */6 * * *" \
+  --uri="$URL/api/cron-scrape" \
+  --http-method=POST \
+  --headers="Content-Type=application/json" \
+  --body="{\"secret\":\"$CRON_SECRET\"}" \
+  --time-zone="Africa/Johannesburg" \
+  --attempt-deadline=600s
+
 echo ""
 echo ">> LIVE URL: $URL"
 echo ">> Health:   $URL/api/health"
-echo ">> Demo:     $URL/api/tenders  |  $URL/api/stats"
+echo ">> Tenders:  $URL/api/tenders"
+echo ">> Shred:    POST $URL/api/shred  {\"text\":\"...\"}"
+echo ">> 6h cron:  gcloud scheduler jobs describe moya-scrape --location=$REGION"
 echo ""
-echo "Paste $URL into the hackathon demo video + README as your Cloud Run proof."
+echo "Paste $URL into the hackathon demo video + README as Cloud Run proof."

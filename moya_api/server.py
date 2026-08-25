@@ -33,6 +33,14 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from moya_data import gemini_client as gem  # noqa: E402
+from moya_data import gcs_sync  # noqa: E402
+from moya_data import cron_scrape as cs  # noqa: E402
+
+# Hydrate the tender store from Cloud Storage on boot (no-op if unset / offline).
+gcs_sync.pull_db()
+
+# Protect the scheduled-scrape endpoint (set via CRON_SECRET on Cloud Run).
+CRON_SECRET = os.getenv("CRON_SECRET", "")
 
 app = FastAPI(title="MY-LO Moya — Agentic Tender Desk API", version="2.0.0")
 
@@ -148,6 +156,19 @@ def shred(payload: dict):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Gemini error: {e}")
     return {"ok": True, "engine": "gemini", "model": gem.DEFAULT_MODEL, "shred": result}
+
+
+@app.post("/api/cron-scrape")
+def cron_scrape(payload: dict = {}):
+    """Triggered by Cloud Scheduler every 6h — pulls GCS, scrapes, pushes GCS."""
+    secret = (payload or {}).get("secret", "")
+    if not CRON_SECRET or secret != CRON_SECRET:
+        raise HTTPException(status_code=401, detail="unauthorized")
+    try:
+        summary = cs.run_cron()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"scrape failed: {e}")
+    return {"ok": True, "summary": summary}
 
 
 def _now() -> str:
