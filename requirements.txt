@@ -1,0 +1,20 @@
+# Moya — agentic tender desk (Python deps)
+# Core scraper / compliance / doc-engine
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+python-dateutil>=2.8.0
+
+# Gemini (bid shredding / drafting)
+google-generativeai>=0.7.0
+
+# API layer (Cloud Run)
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.6.0
+
+# PDF generation (bid packages)
+reportlab>=4.0.0
+
+# optional: serve static dashboard locally
+python-dotenv>=1.0.0

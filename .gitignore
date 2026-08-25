@@ -1,0 +1,32 @@
+# Secrets & credentials — NEVER commit
+.env
+.env.*
+*.env
+*.key
+*.pem
+credentials.json
+application_default_credentials.json
+service-account*.json
+myloxy*
+*_bak*
+
+# Databases & large runtime artifacts
+*.db
+*.sqlite
+*.sqlite3
+moya.db
+tender_moya.db
+.cache/
+
+# Backups & temp
+*.bak
+*.bak_*
+*~
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Vendor / local
+node_modules/
+venv/
+.venv/
