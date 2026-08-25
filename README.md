@@ -64,4 +64,56 @@ uvicorn moya_api.main:app --port 8000         # API + Gemini shredder
 `gemini-api` · `google-cloud-platform` · `python` · `fastapi` · `php` ·
 `sqlite` · `reportlab` · `tailwindcss` · `javascript`
 
+---
+
+## Deployment — Google Cloud Run (hackathon-required proof)
+
+The agentic backend **runs live on Google Cloud Run**, satisfying the
+"deployed on Google Cloud" judging requirement. Two services:
+
+1. **Tender desk API** (`moya_api/server.py`) — live `/api/tenders`,
+   `/api/stats`, and `/api/shred` (Gemini shredding in real time).
+2. **Front-end dashboard** — `dashboard.php` / `moya_ai.php` (deployed
+   alongside or via static hosting).
+
+### One-command backend deploy
+
+```bash
+# 1. Install + auth (one time)
+gcloud components install   # ensures gcloud
+gcloud auth login
+gcloud config set project <YOUR_GCP_PROJECT_ID>
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com
+
+# 2. (Optional but recommended) put the Gemini key in Secret Manager
+echo -n "$GEMINI_API_KEY" | gcloud secrets create gemini-api-key --data-file=-
+
+# 3. Deploy
+bash deploy_cloudrun.sh
+```
+
+The script prints your live `*.run.app` URL. Paste it into the demo video
+and this README as proof of Cloud deployment. `/api/shred` returns 503 until
+`GEMINI_API_KEY` is present (via Secret Manager), then calls Gemini live.
+
+### Local run (development)
+
+```bash
+pip install -r requirements.txt
+python3 seed_demo.py                      # seed demo tenders
+uvicorn moya_api.server:app --port 8000   # API on :8000
+# try: http://127.0.0.1:8000/api/tenders  and  /api/stats
+```
+
+---
+
+## How to win the hackathon (Track 1: Taskmaster)
+
+- **Agentic, not chatbot:** a 6-hour cron scrapes 11+ African tender portals
+  into SQLite; Gemini shreds each document and auto-drafts bid packages — no
+  human in the loop.
+- **Gemini 3:** `gemini-3.5-flash` via the official `google-genai` SDK.
+- **Google Cloud:** backend deployed to **Cloud Run**; data store is SQLite
+  (Cloud Storage sync via `sync_tenders.sh`).
+
 © MY-LO (mylo.co.za)
