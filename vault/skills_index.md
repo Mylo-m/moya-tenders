@@ -9,6 +9,7 @@ Load on demand (progressive disclosure). Metadata here; full playbook in each
 | `moya-deploy` | Any live change (FTP or Cloud Run); enforces backup-first + no-deploy-without-confirm |
 | `moya-smoke` | Self-validation loop — run after every code change (pre-commit hook uses this) |
 | `moya-populate-country` | Seed a country's real tenders idempotently; never fabricate |
+| `moya-agent-team` | Run Moya as a team of agents: isolated sessions, parent+children, watchdog, self-improve loop |
 
 ## Cross-session memory
 - `MOYA_MEMORY.md` — core always-on context (rules, state, links).
