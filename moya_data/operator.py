@@ -50,16 +50,23 @@ DEFAULT_BIDDER = {
 }
 
 
-def _load_fresh_tenders(limit: int = 20) -> list:
-    """Tenders not yet processed by the operator (no generated_bid_packages row)."""
+def _load_fresh_tenders(limit: int = 50) -> list:
+    """Open tenders not yet processed by the operator, across ALL configured
+    markets (not just ZA/KE). The country set is derived from COUNTRY_REGIONS
+    in scraper_sqlite so the operator scales as new countries are added."""
     import sqlite3
+    from moya_data.scraper_sqlite import COUNTRY_REGIONS
+    codes = list(COUNTRY_REGIONS.keys())
+    if not codes:
+        codes = ["ZA", "KE"]
+    placeholders = ",".join("?" * len(codes))
     db = sqlite3.connect(_ROOT / "moya.db")
     db.row_factory = sqlite3.Row
     rows = db.execute(
-        "SELECT id, title, country_code, sector, description, closing_date, issuing_dept "
-        "FROM tenders WHERE status='open' AND country_code IN ('ZA','KE') "
-        "ORDER BY closing_date ASC LIMIT ?",
-        (limit,),
+        f"SELECT id, title, country_code, sector, description, closing_date, issuing_dept "
+        f"FROM tenders WHERE status='open' AND country_code IN ({placeholders}) "
+        f"ORDER BY closing_date ASC LIMIT ?",
+        (*codes, limit),
     ).fetchall()
     db.close()
     return [dict(r) for r in rows]
@@ -96,12 +103,22 @@ def _shred_to_bid_context(shred_text: str, tender: dict) -> "tuple[dict, dict]":
 
 
 def process_tender(tender: dict) -> dict:
-    """Full autonomous action for one tender. Returns a result record."""
+    """Full autonomous action for one tender. Returns a result record.
+
+    Resilient: if Gemini is unavailable (no key / API error), it still drafts a
+    usable bid package from the tender's own title/sector so the operator never
+    blocks the whole run on one missing dependency.
+    """
     from moya_data import gemini_client as gem
     from moya_data import doc_engine as de
 
     text = f"{tender['title']}\n{tender.get('description','')}"
-    shred = gem.gemini_shred(text)
+    shred = ""
+    if gem.gemini_configured():
+        try:
+            shred = gem.gemini_shred(text)
+        except Exception as e:
+            shred = ""  # degrade gracefully; draft from title/sector instead
     bid, _ = _shred_to_bid_context(shred, tender)
     pkg = de.build_bid_package(tender["country_code"], bid)
     md = de.render_markdown(pkg)
@@ -125,20 +142,47 @@ def process_tender(tender: dict) -> dict:
     return record
 
 
-def alert(record: dict) -> None:
-    """Stub: in production this sends WhatsApp/email via the SME channel.
-    Kept as a no-op here so the operator runs headless without creds."""
-    print(f"[ALERT] Auto-drafted bid package for: {record['title']} -> {record['package_md']}")
+def alert(record: dict, dry_run: bool = True) -> None:
+    """Push a notification that a bid package was auto-drafted.
+
+    dry_run=True (default) only prints — no network call. Set dry_run=False
+    (e.g. via the cron job) to actually deliver to Telegram using the
+    MYLO_TG_BOT_TOKEN / MYLO_TG_CHAT_ID creds from the environment.
+    """
+    msg = (
+        f"🤖 Moya auto-drafted a bid package\n"
+        f"🌍 {record.get('country_code','?')} · {record.get('title','?')[:80]}\n"
+        f"📄 {record.get('package_md','')}"
+    )
+    if dry_run:
+        print(f"[DRY-RUN ALERT] {msg}")
+        return
+    try:
+        import os
+        import requests
+        token = os.getenv("MYLO_TG_BOT_TOKEN")
+        chat = os.getenv("MYLO_TG_CHAT_ID")
+        if not token or not chat:
+            print("[ALERT] no Telegram creds set — skipping send")
+            return
+        requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat, "text": msg, "parse_mode": "Markdown"},
+            timeout=20,
+        )
+    except Exception as e:
+        print(f"[ALERT] send failed: {e}")
 
 
-def run_operator(limit: int = 20) -> dict:
-    """Entry point called by cron_scrape after the scrape."""
+def run_operator(limit: int = 20, dry_run: bool = True) -> dict:
+    """Entry point called by cron_scrape after the scrape.
+    dry_run=True prints alerts instead of sending (safe default)."""
     tenders = _load_fresh_tenders(limit)
     results = []
     for t in tenders:
         try:
             rec = process_tender(t)
-            alert(rec)
+            alert(rec, dry_run=dry_run)
             results.append(rec)
         except Exception as e:
             results.append({"tender_id": t["id"], "error": str(e)})
