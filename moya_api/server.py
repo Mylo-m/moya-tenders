@@ -39,6 +39,7 @@ from moya_data import matchmaker  # noqa: E402
 from moya_data import talent_db  # noqa: E402
 from moya_data import eligibility  # noqa: E402
 from moya_data import vernacular  # noqa: E402
+from moya_data import assess  # noqa: E402
 
 # Hydrate the tender store from Cloud Storage on boot (no-op if unset / offline).
 gcs_sync.pull_db()
@@ -311,6 +312,44 @@ def localize(payload: dict):
     return {"ok": True, "localized": result}
 
 
+@app.post("/api/assess")
+def assess_endpoint(payload: dict):
+    """Unified Tender Assessment Orchestrator.
+
+    One call chains: Eligibility (if profile_id given) -> Consortium Matchmaker
+    -> Vernacular localization (if lang given). The full agentic tender desk.
+    Body: {"tender_id": int, "profile_id": int, "lang": "zu"}
+    """
+    if not gem.gemini_configured():
+        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not set.")
+    db = _db()
+    try:
+        tid = (payload or {}).get("tender_id")
+        if tid:
+            row = db.execute("SELECT * FROM tenders WHERE id=?", (tid,)).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Tender not found")
+            tender = _row_to_dict(row)
+        else:
+            text = (payload or {}).get("text", "")
+            if not text.strip():
+                raise HTTPException(status_code=400, detail="Need tender_id or text")
+            tender = {"id": None, "title": "Inline brief", "description": text,
+                      "country_code": (payload or {}).get("country_code", "ZA")}
+    finally:
+        db.close()
+    try:
+        result = assess.assess_tender(
+            tender,
+            profile_id=(payload or {}).get("profile_id"),
+            lang=(payload or {}).get("lang"),
+            model=None,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Assess error: {e}")
+    return {"ok": True, "assessment": result}
+
+
 @app.post("/api/cron-scrape")
 def cron_scrape(payload: dict = {}):
     """Triggered by Cloud Scheduler every 6h — pulls GCS, scrapes, pushes GCS."""
@@ -338,45 +377,71 @@ if __name__ == "__main__":
 _MATCH_UI_HTML = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Moya — Consortium Matchmaker</title>
+<title>Moya — Agentic Tender Desk</title>
 <style>
-  body{font-family:system-ui,Arial,sans-serif;max-width:820px;margin:2rem auto;padding:0 1rem;color:#16181d}
+  body{font-family:system-ui,Arial,sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#16181d}
   h1{font-size:1.4rem} h2{font-size:1.05rem;margin-top:1.5rem}
   .card{border:1px solid #e2e2e2;border-radius:10px;padding:1rem;margin:.6rem 0}
   button{background:#1a73e8;color:#fff;border:0;border-radius:8px;padding:.6rem 1rem;font-size:.95rem;cursor:pointer}
-  button:disabled{opacity:.5} input,textarea{width:100%;padding:.5rem;border:1px solid #ccc;border-radius:8px;box-sizing:border-box}
-  pre{background:#0d1117;color:#c9d1d9;padding:1rem;border-radius:8px;overflow:auto;font-size:.8rem}
+  button:disabled{opacity:.5} input,textarea,select{width:100%;padding:.5rem;border:1px solid #ccc;border-radius:8px;box-sizing:border-box}
+  pre{background:#0d1117;color:#c9d1d9;padding:1rem;border-radius:8px;overflow:auto;font-size:.78rem}
   .muted{color:#666;font-size:.85rem}
   #status{margin:.8rem 0;font-weight:600}
+  .row{display:flex;gap:.6rem;flex-wrap:wrap}
+  .row>div{flex:1;min-width:160px}
 </style></head><body>
-<h1>Moya — Consortium Matchmaker <span class="muted">(All Things Agentic Hackathon)</span></h1>
-<p class="muted">Pick a live South-African tender &rarr; the Gemini 3.5 Flash agent assembles a winning bid consortium from the local talent graph and drafts intro emails.</p>
+<h1>Moya — Agentic Tender Desk <span class="muted">(All Things Agentic Hackathon)</span></h1>
+<p class="muted">One click runs the full agent: <b>Eligibility</b> (can you win alone?) →
+<b>Consortium Matchmaker</b> (a winning team) → <b>Vernacular</b> (in your language), all on
+Gemini 3.5 Flash.</p>
 <div class="card">
-  <label>Tender ID (from /api/tenders): <input id="tid" type="number" placeholder="e.g. 65507" style="max-width:160px"></label>
-  <button id="go">Build consortium &rarr;</button>
+  <div class="row">
+    <div><label>Tender ID: <input id="tid" type="number" placeholder="e.g. 517"></label></div>
+    <div><label>Your profile ID (1=Thabo,2=Naledi,3=Aisha): <input id="pid" type="number" placeholder="1" value="1"></label></div>
+    <div><label>Language: <select id="lang">
+      <option value="">English only</option>
+      <option value="zu">isiZulu</option>
+      <option value="yo">Yoruba</option>
+      <option value="sw">Swahili</option>
+      <option value="am">Amharic</option>
+      <option value="fr">French</option>
+    </select></label></div>
+  </div>
+  <button id="go" style="margin-top:.6rem">Assess tender &rarr;</button>
   <div id="status"></div>
 </div>
 <div class="card">
   <h2>…or paste a tender brief</h2>
   <textarea id="brief" rows="4" placeholder="Provision of structured cabling and CCTV at a Gauteng municipality. B-BBEE Level 4 required…"></textarea>
-  <button id="go2">Build from brief &rarr;</button>
+  <div class="row" style="margin-top:.6rem">
+    <div><label>Profile ID: <input id="pid2" type="number" placeholder="1" value="1"></label></div>
+    <div><label>Language: <select id="lang2">
+      <option value="">English only</option>
+      <option value="zu">isiZulu</option>
+      <option value="yo">Yoruba</option>
+      <option value="sw">Swahili</option>
+      <option value="am">Amharic</option>
+      <option value="fr">French</option>
+    </select></label></div>
+  </div>
+  <button id="go2" style="margin-top:.6rem">Assess from brief &rarr;</button>
 </div>
 <h2>Result</h2>
 <pre id="out">—</pre>
 <script>
-const api = (b)=>fetch('/api/match',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})
+const api = (b)=>fetch('/api/assess',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})
   .then(r=>r.json());
 function show(j){document.getElementById('out').textContent=JSON.stringify(j,null,2);}
 document.getElementById('go').onclick=async()=>{
   const tid=document.getElementById('tid').value; if(!tid){alert('enter a tender id');return;}
-  document.getElementById('status').textContent='⏳ asking Gemini…';
-  show(await api({tender_id:Number(tid)}));
+  document.getElementById('status').textContent='⏳ running agents (eligibility → matchmaker → vernacular)…';
+  show(await api({tender_id:Number(tid), profile_id:Number(document.getElementById('pid').value)||null, lang:document.getElementById('lang').value||null}));
   document.getElementById('status').textContent='✅ done';
 };
 document.getElementById('go2').onclick=async()=>{
   const t=document.getElementById('brief').value; if(!t.trim()){alert('paste a brief');return;}
-  document.getElementById('status').textContent='⏳ asking Gemini…';
-  show(await api({text:t}));
+  document.getElementById('status').textContent='⏳ running agents…';
+  show(await api({text:t, profile_id:Number(document.getElementById('pid2').value)||null, lang:document.getElementById('lang2').value||null}));
   document.getElementById('status').textContent='✅ done';
 };
 </script></body></html>"""
