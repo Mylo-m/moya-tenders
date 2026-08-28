@@ -2,15 +2,19 @@
 # Deploy MY-LO Moya to Google Cloud Run (hackathon "proof of deployment") +
 # wire Cloud Storage (real GCP data store) + Gemini via Secret Manager.
 #
-# PREREQUISITES (your one-time, one-command browser step):
-#   gcloud auth login        # opens browser, approve, pick project
-#   gcloud config set project content-studio-505121
+# PREREQUISITES (your one-time manual steps — only you can do these):
+#   1. Create a GCP project: https://console.cloud.google.com/  (free trial, no credits needed)
+#   2. Install gcloud:       https://cloud.google.com/sdk/docs/install
+#   3. gcloud auth login     # opens browser, approve, select that project
+#   4. gcloud config set project <YOUR_PROJECT_ID>
+#   5. (recommended) put the Gemini key in Secret Manager:
+#      echo -n "$GEMINI_API_KEY" | gcloud secrets create gemini-api-key --data-file=-
 #
 # Then run:  bash deploy_cloudrun.sh
 set -euo pipefail
 
 SERVICE="moya-tender-desk"
-REGION="${REGION:-europe-west1}"
+REGION="${REGION:-europe-west1}"   # change to africa-south1 if GCP enables it for you; europe-west1 is free-tier safe
 PROJECT="$(gcloud config get-value project)"
 BUCKET="${GCS_BUCKET:-moya-tenders-data}"
 
