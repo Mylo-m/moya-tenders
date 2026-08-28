@@ -87,3 +87,87 @@ Direct use of automatic function calling (AFC) in Models.generate_content is not
 
 [Aisha Khan] normalised certs: {'bbbee': '1', 'pmp': 'yes', 'csd': 'yes'}
   verdict: ELIGIBLE_IF | registry_missing: ['Tax Clearance PIN (SARS)']
+Direct use of automatic function calling (AFC) in Models.generate_content is not recommended. Instead, we recommend to use AFC in Chat.send_message. Similarly, direct use of AFC in Models.generate_content_stream is not recommended. Instead, we recommend to use AFC in Chat.send_message_stream.
+
+[VERNACULAR LAYER] 2026-08-28T12:24:12.803855+00:00
+ok: True | model: gemini-3.5-flash
+
+PLAIN SUMMARY:
+ Hello! I’m MY-LO, your friendly guide to understanding government tenders. 
+
+I’ve looked over the text you pasted, but it looks like **there isn't an actual tender here yet!** 
+
+Instead, this text is a list of website menu links and search categories (like "Login," "Register," "Shopping Cart," and lists of South African provinces). 
+
+Because there is no actual tender information in this text, I can't tell you what is being asked for, who can apply, or what the deadlines and rules are. I don't want to
+
+[zu] (translation failed: Gemini HTTP 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.g
+
+[yo] (translation failed: Gemini HTTP 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.g
+
+[sw] (translation failed: Gemini HTTP 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.g
+Direct use of automatic function calling (AFC) in Models.generate_content is not recommended. Instead, we recommend to use AFC in Chat.send_message. Similarly, direct use of AFC in Models.generate_content_stream is not recommended. Instead, we recommend to use AFC in Chat.send_message_stream.
+
+[VERNACULAR retry] 2026-08-28T12:24:47.758313+00:00 tender 870
+Traceback (most recent call last):
+  File "/mnt/c/Users/ordio/mylo_site/_moya_repo_staging/moya_data/gemini_client.py", line 115, in _generate
+    with urllib.request.urlopen(req, timeout=60) as r:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ordio/.hermes/hermes-agent/.hermes-runtime/python/generation-1785752912-9577-e8c152ae/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/urllib/request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ordio/.hermes/hermes-agent/.hermes-runtime/python/generation-1785752912-9577-e8c152ae/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/urllib/request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/ordio/.hermes/hermes-agent/.hermes-runtime/python/generation-1785752912-9577-e8c152ae/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/urllib/request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "/home/ordio/.hermes/hermes-agent/.hermes-runtime/python/generation-1785752912-9577-e8c152ae/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/urllib/request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ordio/.hermes/hermes-agent/.hermes-runtime/python/generation-1785752912-9577-e8c152ae/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/urllib/request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "/home/ordio/.hermes/hermes-agent/.hermes-runtime/python/generation-1785752912-9577-e8c152ae/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/urllib/request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 429: Too Many Requests
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<stdin>", line 12, in <module>
+  File "/mnt/c/Users/ordio/mylo_site/_moya_repo_staging/moya_data/vernacular.py", line 68, in localize_tender
+    summary = plain_language(body, model=model)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/ordio/mylo_site/_moya_repo_staging/moya_data/vernacular.py", line 39, in plain_language
+    return _generate(f"{system}\n\n=== TENDER ===\n{tender_text[:110000]}", model=model or DEFAULT_MODEL, max_tokens=1200, temperature=0.3)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/ordio/mylo_site/_moya_repo_staging/moya_data/gemini_client.py", line 119, in _generate
+    raise RuntimeError(f"Gemini HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:200]}")
+RuntimeError: Gemini HTTP 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+Direct use of automatic function calling (AFC) in Models.generate_content is not recommended. Instead, we recommend to use AFC in Chat.send_message. Similarly, direct use of AFC in Models.generate_content_stream is not recommended. Instead, we recommend to use AFC in Chat.send_message_stream.
+
+[VERNACULAR final proof] 2026-08-28T12:27:12.540663+00:00 tender 870
+ok: True | model: gemini-3.5-flash
+PLAIN:
+ (plain-language summary unavailable: Gemini call failed after retries: Gemini HTTP 429 (quota): {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a)
+
+Original:
+Home Contact Us Frequently Asked Questions Shopping Cart Login Register Lost Password Home Contact Us Frequently Asked Questions Shopping Cart Login Register Lost Password View Tenders Govern
+
+[zu] Ikhasi Lasekhaya Thintana Nathi Imibuzo Evame Ukubuzwa Inqola Yokuthenga Ngena Bhal

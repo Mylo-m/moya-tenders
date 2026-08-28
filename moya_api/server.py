@@ -38,6 +38,7 @@ from moya_data import cron_scrape as cs  # noqa: E402
 from moya_data import matchmaker  # noqa: E402
 from moya_data import talent_db  # noqa: E402
 from moya_data import eligibility  # noqa: E402
+from moya_data import vernacular  # noqa: E402
 
 # Hydrate the tender store from Cloud Storage on boot (no-op if unset / offline).
 gcs_sync.pull_db()
@@ -274,6 +275,40 @@ def eligibility_check(payload: dict):
     if not result.get("ok"):
         return {"ok": False, "error": result.get("error")}
     return {"ok": True, "eligibility": result}
+
+
+@app.post("/api/localize")
+def localize(payload: dict):
+    """Vernacular plain-language layer: plain summary + local-language translations.
+
+    Body: {"tender_id": int}  OR  {"text": "...", "langs": ["zu","yo","sw"]}
+    Produces a plain-language summary and translates it to isiZulu / Yoruba /
+    Swahili / Amharic / French (the authentic-Africa moat).
+    """
+    if not gem.gemini_configured():
+        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not set.")
+    db = _db()
+    try:
+        tid = (payload or {}).get("tender_id")
+        if tid:
+            row = db.execute("SELECT * FROM tenders WHERE id=?", (tid,)).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Tender not found")
+            tender = _row_to_dict(row)
+        else:
+            text = (payload or {}).get("text", "")
+            if not text.strip():
+                raise HTTPException(status_code=400, detail="Need tender_id or text")
+            tender = {"id": None, "title": "Inline brief", "description": text}
+    finally:
+        db.close()
+    try:
+        result = vernacular.localize_tender(tender, langs=(payload or {}).get("langs"), model=None)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Localize error: {e}")
+    if not result.get("ok"):
+        return {"ok": False, "error": result.get("error")}
+    return {"ok": True, "localized": result}
 
 
 @app.post("/api/cron-scrape")
