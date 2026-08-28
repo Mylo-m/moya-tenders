@@ -71,7 +71,7 @@ satisfying the "deployed on Google Cloud" requirement. The live `/api/shred` and
   `GEMMA_FALLBACK=1`, so the match still runs on the open model if Flash is down
   (the #Gemma bonus, with no extra infra).
 - **Cloud Storage** is the real data store (requirement #3).
-- We post the build to #AllThingsAgentic and publish this blog (the social +
+- We post the build to #AllThingsAgenticHackathon and publish this blog (the social +
   blog bonuses).
 
 ## What's next
@@ -83,4 +83,4 @@ seekers across ZA/KE/NG.
 ---
 
 *MY-LO (mylo.co.za) — agentic procurement intelligence for African SMEs.*
-*#AllThingsAgentic #Gemini #GoogleCloud*
+*#AllThingsAgenticHackathon #Gemini #GoogleCloud*

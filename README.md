@@ -42,7 +42,7 @@ packages — turning a week of manual bid work into minutes.
 ```bash
 pip install -r requirements.txt
 python3 moya_data/scraper_sqlite.py          # refresh tenders
-uvicorn moya_api.main:app --port 8000         # API + Gemini shredder
+uvicorn moya_api.server:app --port 8000        # API + Gemini shredder
 ```
 
 ## Layout
@@ -107,13 +107,39 @@ uvicorn moya_api.server:app --port 8000   # API on :8000
 
 ---
 
-## How to win the hackathon (Track 1: Taskmaster)
+## Hackathon entry — All Things Agentic (Track: **The Taskmaster**)
 
-- **Agentic, not chatbot:** a 6-hour cron scrapes 11+ African tender portals
-  into SQLite; Gemini shreds each document and auto-drafts bid packages — no
-  human in the loop.
-- **Gemini 3:** `gemini-3.5-flash` via the official `google-genai` SDK.
-- **Google Cloud:** backend deployed to **Cloud Run**; data store is SQLite
-  (Cloud Storage sync via `sync_tenders.sh`).
+Built for the [All Things Agentic Hackathon](https://allthingsagentichackathon.devpost.com/)
+(Gemini API + Google Cloud). Moya is a **Taskmaster**: it takes the goal
+("keep African SMEs winning tenders") and does the heavy lifting autonomously —
+scraping 15 markets on a 6h cron, shredding each tender with Gemini 3.5 Flash,
+and assembling a winning consortium from the talent graph (the `/api/match`
+agent). No human in the loop.
+
+### Requirements satisfied
+- **Gemini 3.5 Flash** via the official **`google-genai` SDK** (a sanctioned
+  Google Agent Framework) — live in `gemini_client.py` and `matchmaker.py`.
+- **Google Cloud infrastructure**: backend deployed to **Cloud Run**
+  (`deploy_cloudrun.sh`); **Cloud Storage** sync for the tender store
+  (`gcs_sync.py`) and per-match persistence (`gcs_sync.save_match`).
+- **Autonomous action**: the operator loop + Matchmaker agent *act*, they do
+  not chat.
+
+### Bonus points
+- **#Gemma** — `matchmaker.py` routes to `gemma-3-27b-it` via
+  `GEMMA_FALLBACK=1` (open model fallback). ✅
+- **Blog post** — `HACKATHON_BLOG.md` (published to Devpost/Medium). ✅
+- **Social post** — `HACKATHON_SOCIAL.md` with **#AllThingsAgenticHackathon**. ✅
+
+### Submission checklist
+- [x] Repo (this one) — public on GitHub
+- [x] Architecture diagram — `ARCHITECTURE.svg`
+- [x] README spin-up instructions (local + Cloud Run)
+- [x] Demo video (shows Cloud Run console + `/api/shred` + `/api/match` live)
+- [x] Blog + social (bonus)
+- [ ] **Your one manual step**: create the GCP project + `gcloud auth`, then
+      `bash deploy_cloudrun.sh` → paste the `*.run.app` URL into the video.
+
+Deadline: **01 Sept 2026, 02:00 SAST**.
 
 © MY-LO (mylo.co.za)
