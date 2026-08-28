@@ -37,6 +37,7 @@ from moya_data import gcs_sync  # noqa: E402
 from moya_data import cron_scrape as cs  # noqa: E402
 from moya_data import matchmaker  # noqa: E402
 from moya_data import talent_db  # noqa: E402
+from moya_data import eligibility  # noqa: E402
 
 # Hydrate the tender store from Cloud Storage on boot (no-op if unset / offline).
 gcs_sync.pull_db()
@@ -230,6 +231,49 @@ def match(payload: dict):
 def match_ui():
     """Minimal demo UI: pick a tender, watch the agent build a consortium."""
     return HTMLResponse(_MATCH_UI_HTML)
+
+
+@app.post("/api/eligibility")
+def eligibility_check(payload: dict):
+    """Eligibility Oracle (person level): 'Can I win this tender?'
+
+    Body: {"tender_id": int, "profile_id": int}  OR
+          {"text": "...", "profile_id": int, "country_code": "ZA"}
+    Returns ELIGIBLE / NOT_ELIGIBLE / ELIGIBLE_IF with the exact certs to get.
+    """
+    if not gem.gemini_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="GEMINI_API_KEY not set — set it via Secret Manager / env.",
+        )
+    db = _db()
+    try:
+        tid = (payload or {}).get("tender_id")
+        pid = (payload or {}).get("profile_id")
+        if not pid:
+            raise HTTPException(status_code=400, detail="profile_id required")
+        if tid:
+            row = db.execute("SELECT * FROM tenders WHERE id=?", (tid,)).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Tender not found")
+            tender = _row_to_dict(row)
+        else:
+            text = (payload or {}).get("text", "")
+            if not text.strip():
+                raise HTTPException(status_code=400, detail="Need tender_id or text")
+            tender = {
+                "id": None, "title": "Inline brief", "description": text,
+                "country_code": (payload or {}).get("country_code", "ZA"),
+            }
+    finally:
+        db.close()
+    try:
+        result = eligibility.evaluate_eligibility(tender, profile_id=int(pid))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Eligibility error: {e}")
+    if not result.get("ok"):
+        return {"ok": False, "error": result.get("error")}
+    return {"ok": True, "eligibility": result}
 
 
 @app.post("/api/cron-scrape")
