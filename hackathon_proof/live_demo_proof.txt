@@ -1,0 +1,49 @@
+Direct use of automatic function calling (AFC) in Models.generate_content is not recommended. Instead, we recommend to use AFC in Chat.send_message. Similarly, direct use of AFC in Models.generate_content_stream is not recommended. Instead, we recommend to use AFC in Chat.send_message_stream.
+PROOF OF BUILD — Moya agentic tender desk
+Generated: 2026-08-28T12:11:27.864118+00:00
+Gemini configured: True | model: gemini-3.5-flash
+
+============================================================
+LIVE GEMINI CALL  (equivalent to POST /api/shred)
+============================================================
+### **MY-LO Moya Tender-Shredding Engine Report**
+
+**Project:** Provision of Structured Cabling and CCTV  
+**Location:** Gauteng Municipality  
+
+---
+
+### **1. Key Obligations**
+*   **Scope of Work:** Supply, installation, and commissioning of structured cabling infrastructure and CCTV systems.
+*   **Site Briefing:** Mandatory attendance at the compulsory site briefing on **15 September 2026**.
+*   **Execution Location:** Designated municipal sites within Gauteng.
+
+---
+
+### **2. Submission Deadline**
+*   **Closing Date:** 30 September 2026  
+*   *Note: Late submissions will be automatically disqualified.*
+
+---
+
+### **3. Required Compliance Certificates**
+*   **B-BBEE Status:** Minimum Level 4 B-BBEE Contributor Certificate or valid Sworn Affidavit.
+*   **Standard SA Municipal Compliance (Implied/Standard):**
+    *   SARS Tax Compliance Status (TCS Pin).
+    *   Central Supplier Database (
+
+============================================================
+LIVE CONSORTIUM MATCHMAKER  (equivalent to POST /api/match)
+============================================================
+ok: False | model: None | pool: 6
+
+GEMMA FALLBACK path available: GEMMA_FALLBACK=1 -> gemma-3-27b-it
+Direct use of automatic function calling (AFC) in Models.generate_content is not recommended. Instead, we recommend to use AFC in Chat.send_message. Similarly, direct use of AFC in Models.generate_content_stream is not recommended. Instead, we recommend to use AFC in Chat.send_message_stream.
+
+[RETRY] Consortium Matchmaker at 2026-08-28T12:12:26.460613+00:00
+ok: True | model: gemini-3.5-flash | pool: 6
+  - #1 Thabo Mokoena :: Lead AV Integrator & Technical Designer
+  - #3 Aisha Khan :: Bid Manager & Compliance Lead
+coverage: ['Audio-Visual Design (av-design)', 'CSD Registration (mandatory for SA government tenders)', 'B-BBEE Level 1 Compliance', 'Bid Writing and Tender Compliance', 'Project Management (PMP)']
+gaps: []
+emails drafted: 2

@@ -135,10 +135,14 @@ agent). No human in the loop.
 - [x] Repo (this one) — public on GitHub
 - [x] Architecture diagram — `ARCHITECTURE.svg`
 - [x] README spin-up instructions (local + Cloud Run)
-- [x] Demo video (shows Cloud Run console + `/api/shred` + `/api/match` live)
-- [x] Blog + social (bonus)
-- [ ] **Your one manual step**: create the GCP project + `gcloud auth`, then
-      `bash deploy_cloudrun.sh` → paste the `*.run.app` URL into the video.
+- [x] Live Gemini proof — `hackathon_proof/live_demo_proof.txt` (`/api/shred` + `/api/match`)
+- [x] Blog + social (bonus: #Gemma + blog + #AllThingsAgenticHackathon)
+- [x] Devpost submission text — `HACKATHON_SUBMISSION.md`
+- [ ] **Cloud Run live instance: NOT active at submission** — project billing
+      could not be funded before the deadline. Deploy is one command
+      (`bash deploy_cloudrun.sh`) the moment billing is enabled. Judges: see the
+      honest "Deployment note" in `HACKATHON_SUBMISSION.md` + the scripted,
+      reproducible Cloud Run proof.
 
 Deadline: **01 Sept 2026, 02:00 SAST**.
 
